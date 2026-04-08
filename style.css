@@ -1,0 +1,32 @@
+.sound-layout { display: grid; grid-template-columns: 250px 1fr; gap: 2rem; align-items: start; }
+.controls-panel { padding: 1.5rem; position: sticky; top: 100px; }
+.controls-panel h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+.pad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.pad { 
+    background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); 
+    aspect-ratio: 1.5; display: flex; align-items: center; justify-content: center; 
+    font-weight: 700; font-size: 1.1rem; cursor: pointer; user-select: none;
+    transition: all 0.1s; text-align: center; color: var(--text);
+    box-shadow: 0 4px 0 var(--border);
+}
+.pad:active, .pad.active {
+    transform: translateY(4px); box-shadow: 0 0 0 var(--border);
+}
+
+/* Preset specific colors */
+.preset-kick, .preset-snare, .preset-hihat { border-color: rgba(239, 68, 68, 0.4); }
+.preset-kick:active, .preset-kick.active, .preset-snare:active, .preset-snare.active, .preset-hihat:active, .preset-hihat.active { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.preset-laser, .preset-blip { border-color: rgba(16, 185, 129, 0.4); }
+.preset-laser:active, .preset-laser.active, .preset-blip:active, .preset-blip.active { border-color: #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+.preset-jump, .preset-coin { border-color: rgba(245, 158, 11, 0.4); }
+.preset-jump:active, .preset-jump.active, .preset-coin:active, .preset-coin.active { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+.preset-explosion, .preset-wobble { border-color: rgba(139, 92, 246, 0.4); }
+.preset-explosion:active, .preset-explosion.active, .preset-wobble:active, .preset-wobble.active { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+
+@media (max-width: 768px) {
+    .sound-layout { grid-template-columns: 1fr; }
+    .controls-panel { position: static; }
+}
