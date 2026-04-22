@@ -56,8 +56,50 @@ function initAudio() {
         destNode = ctx.createMediaStreamDestination();
         dryGain.connect(destNode);
         convolverGain.connect(destNode);
+
+        // Spectrum Analyser
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        dryGain.connect(analyser);
+        convolverGain.connect(analyser);
+        startSpectrumLoop();
     }
     if(ctx.state === 'suspended') ctx.resume();
+}
+
+let analyser = null;
+let specAnimId = null;
+function startSpectrumLoop() {
+    const canvas = document.getElementById('spectrumCanvas');
+    if (!canvas || !analyser) return;
+    const specCtx = canvas.getContext('2d');
+    const bufLen = analyser.frequencyBinCount;
+    const dataArr = new Uint8Array(bufLen);
+
+    function draw() {
+        specAnimId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArr);
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        specCtx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+
+        specCtx.clearRect(0, 0, w, h);
+        const barW = (w / bufLen) * 2.5;
+        let x = 0;
+        for (let i = 0; i < bufLen; i++) {
+            const barH = (dataArr[i] / 255) * h;
+            const hue = (i / bufLen) * 280 + 120;
+            specCtx.fillStyle = `hsla(${hue}, 80%, 55%, 0.8)`;
+            specCtx.fillRect(x, h - barH, barW - 1, barH);
+            x += barW;
+            if (x > w) break;
+        }
+    }
+    draw();
 }
 
 let masterVol = 0.5;
