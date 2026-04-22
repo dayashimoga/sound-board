@@ -55,7 +55,49 @@
                     <label>Base Pitch: <span id="pitchVal">440</span>Hz</label>
                     <input type="range" id="masterPitch" min="100" max="2000" value="440" class="w-100 mt-1">
                 </div>
-                <div class="mt-3 text-muted text-sm">
+                <div class="mt-3">
+                    <label>Bass: <span id="bassVal">0</span>dB</label>
+                    <input type="range" id="eqBass" min="-20" max="20" value="0" class="w-100 mt-1">
+                </div>
+                <div class="mt-3">
+                    <label>Mid: <span id="midVal">0</span>dB</label>
+                    <input type="range" id="eqMid" min="-20" max="20" value="0" class="w-100 mt-1">
+                </div>
+                <div class="mt-3">
+                    <label>Treble: <span id="trebleVal">0</span>dB</label>
+                    <input type="range" id="eqTreble" min="-20" max="20" value="0" class="w-100 mt-1">
+                </div>
+                <div class="mt-3">
+                    <label>Reverb: <span id="reverbVal">0</span>%</label>
+                    <input type="range" id="reverbMix" min="0" max="100" value="0" class="w-100 mt-1">
+                </div>
+                
+                <hr style="margin:1.5rem 0; border-color:var(--border);">
+                
+                <h3>Live Recording</h3>
+                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                    <button class="btn btn-primary" id="btnRecord">🔴 Record</button>
+                    <button class="btn btn-outline" id="btnStopRec" disabled>⏹ Stop</button>
+                    <button class="btn btn-outline" id="btnDownloadRec" disabled>📥 Download WAV</button>
+                </div>
+                
+                <hr style="margin:1.5rem 0; border-color:var(--border);">
+                
+                <h3>16-Step Sequencer</h3>
+                <div class="mt-2" style="display:flex; align-items:center; gap:1rem;">
+                    <button class="btn btn-primary" id="btnSeqPlay">▶ Play</button>
+                    <button class="btn btn-outline" id="btnSeqStop">⏹ Stop</button>
+                    <div>
+                        <label style="font-size:0.8rem;">BPM: <span id="bpmVal">120</span></label>
+                        <input type="range" id="seqBpm" min="60" max="240" value="120" style="width:100px; display:block;">
+                    </div>
+                </div>
+                
+                <div class="seq-grid mt-3" id="sequencerGrid" style="display:grid; grid-template-columns:auto repeat(16, 1fr); gap:2px; font-size:0.75rem; overflow-x:auto;">
+                    <!-- JS generated rows -->
+                </div>
+
+                <div class="mt-4 text-muted text-sm">
                     All sounds are completely synthesized in real-time in the browser using the Web Audio API. No external audio files are used!
                 </div>
             </div>

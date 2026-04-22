@@ -3,9 +3,59 @@
 const $=s=>document.querySelector(s);
 let ctx = null;
 
+let eqBass, eqMid, eqTreble, convolver, convolverGain, dryGain;
+let destNode; 
+let mediaRecorder;
+let recordedChunks = [];
+
 function initAudio() {
     if(!ctx) {
         ctx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        eqBass = ctx.createBiquadFilter();
+        eqBass.type = 'lowshelf';
+        eqBass.frequency.value = 250;
+        
+        eqMid = ctx.createBiquadFilter();
+        eqMid.type = 'peaking';
+        eqMid.frequency.value = 1000;
+        eqMid.Q.value = 1;
+        
+        eqTreble = ctx.createBiquadFilter();
+        eqTreble.type = 'highshelf';
+        eqTreble.frequency.value = 4000;
+        
+        // Reverb (Convolver)
+        convolver = ctx.createConvolver();
+        const length = ctx.sampleRate * 2;
+        const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+        for (let i = 0; i < 2; i++) {
+            const channel = impulse.getChannelData(i);
+            for (let j = 0; j < length; j++) {
+                channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 3);
+            }
+        }
+        convolver.buffer = impulse;
+        
+        convolverGain = ctx.createGain();
+        convolverGain.gain.value = 0;
+        
+        dryGain = ctx.createGain();
+        dryGain.gain.value = 1;
+        
+        eqBass.connect(eqMid);
+        eqMid.connect(eqTreble);
+        
+        eqTreble.connect(dryGain);
+        eqTreble.connect(convolver);
+        convolver.connect(convolverGain);
+        
+        dryGain.connect(ctx.destination);
+        convolverGain.connect(ctx.destination);
+        
+        destNode = ctx.createMediaStreamDestination();
+        dryGain.connect(destNode);
+        convolverGain.connect(destNode);
     }
     if(ctx.state === 'suspended') ctx.resume();
 }
@@ -22,8 +72,9 @@ function playSound(type) {
     
     // Create master gain for this sound
     const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.value = masterVol;
+    gain.connect(eqBass);
+    // Envelope will apply masterVol
+
 
     if(type === 'kick') {
         const osc = ctx.createOscillator();
@@ -219,6 +270,108 @@ window.addEventListener('keydown', e=>{
     if(type) {
         const el = document.querySelector(`.pad[data-type="${type}"]`);
         if(el) { playSound(type); el.classList.add('active'); setTimeout(()=>el.classList.remove('active'),100); }
+    }
+});
+
+});
+
+// --- EQ and Reverb Controls ---
+$('#eqBass')?.addEventListener('input', e=>{ if(eqBass) eqBass.gain.value = parseInt(e.target.value); $('#bassVal').textContent=e.target.value; });
+$('#eqMid')?.addEventListener('input', e=>{ if(eqMid) eqMid.gain.value = parseInt(e.target.value); $('#midVal').textContent=e.target.value; });
+$('#eqTreble')?.addEventListener('input', e=>{ if(eqTreble) eqTreble.gain.value = parseInt(e.target.value); $('#trebleVal').textContent=e.target.value; });
+$('#reverbMix')?.addEventListener('input', e=>{ 
+    const mix = parseInt(e.target.value)/100; 
+    if(convolverGain) convolverGain.gain.value = mix; 
+    if(dryGain) dryGain.gain.value = 1 - mix*0.5;
+    $('#reverbVal').textContent=e.target.value; 
+});
+
+// --- Live Recording ---
+$('#btnRecord')?.addEventListener('click', () => {
+    initAudio();
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(destNode.stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.start();
+    $('#btnRecord').disabled = true;
+    $('#btnStopRec').disabled = false;
+    $('#btnDownloadRec').disabled = true;
+    $('#btnRecord').textContent = '🔴 Recording...';
+});
+
+$('#btnStopRec')?.addEventListener('click', () => {
+    if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        $('#btnRecord').disabled = false;
+        $('#btnStopRec').disabled = true;
+        $('#btnDownloadRec').disabled = false;
+        $('#btnRecord').textContent = '🔴 Record';
+    }
+});
+
+$('#btnDownloadRec')?.addEventListener('click', () => {
+    if(recordedChunks.length === 0) return;
+    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'soundboard_recording.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// --- Sequencer ---
+const seqTracks = ['kick', 'snare', 'hihat', 'blip'];
+let seqStep = 0;
+let seqInterval = null;
+
+function renderSequencer() {
+    const grid = $('#sequencerGrid');
+    if(!grid) return;
+    let html = `<div></div>`;
+    for(let i=0; i<16; i++) html += `<div style="text-align:center; color:var(--text-muted);">${i+1}</div>`;
+    
+    seqTracks.forEach(t => {
+        html += `<div style="text-align:right; padding-right:5px; color:var(--accent); font-weight:bold;">${t}</div>`;
+        for(let i=0; i<16; i++) {
+            html += `<input type="checkbox" class="seq-cb" data-track="${t}" data-step="${i}" style="width:100%; height:20px; cursor:pointer;">`;
+        }
+    });
+    grid.innerHTML = html;
+}
+renderSequencer();
+
+function stepSequencer() {
+    // Unhighlight all headers
+    document.querySelectorAll('.seq-header-active').forEach(e=>e.classList.remove('seq-header-active'));
+    // Trigger sounds
+    seqTracks.forEach(t => {
+        const cb = document.querySelector(`input.seq-cb[data-track="${t}"][data-step="${seqStep}"]`);
+        if(cb && cb.checked) {
+            playSound(t);
+        }
+    });
+    seqStep = (seqStep + 1) % 16;
+}
+
+$('#btnSeqPlay')?.addEventListener('click', () => {
+    if(seqInterval) clearInterval(seqInterval);
+    const bpm = parseInt($('#seqBpm').value);
+    const msPer16th = (60000 / bpm) / 4;
+    seqStep = 0;
+    seqInterval = setInterval(stepSequencer, msPer16th);
+});
+
+$('#btnSeqStop')?.addEventListener('click', () => {
+    if(seqInterval) clearInterval(seqInterval);
+    seqInterval = null;
+    seqStep = 0;
+});
+
+$('#seqBpm')?.addEventListener('input', e => {
+    $('#bpmVal').textContent = e.target.value;
+    if(seqInterval) {
+        $('#btnSeqPlay').click(); // restart
     }
 });
 
