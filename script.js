@@ -334,15 +334,17 @@ $('#btnRecord')?.addEventListener('click', () => {
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.start();
     $('#btnRecord').disabled = true;
+    $('#btnRecord').classList.add('recording');
     $('#btnStopRec').disabled = false;
     $('#btnDownloadRec').disabled = true;
-    $('#btnRecord').textContent = '🔴 Recording...';
+    $('#btnRecord').textContent = 'Recording...';
 });
 
 $('#btnStopRec')?.addEventListener('click', () => {
     if(mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
         $('#btnRecord').disabled = false;
+        $('#btnRecord').classList.remove('recording');
         $('#btnStopRec').disabled = true;
         $('#btnDownloadRec').disabled = false;
         $('#btnRecord').textContent = '🔴 Record';
@@ -369,26 +371,34 @@ function renderSequencer() {
     const grid = $('#sequencerGrid');
     if(!grid) return;
     let html = `<div></div>`;
-    for(let i=0; i<16; i++) html += `<div style="text-align:center; color:var(--text-muted);">${i+1}</div>`;
+    for(let i=0; i<16; i++) html += `<div style="text-align:center; color:#aaa; font-size:0.75rem;">${i+1}</div>`;
     
     seqTracks.forEach(t => {
-        html += `<div style="text-align:right; padding-right:5px; color:var(--accent); font-weight:bold;">${t}</div>`;
+        html += `<div class="seq-row-label">${t.toUpperCase()}</div>`;
         for(let i=0; i<16; i++) {
-            html += `<input type="checkbox" class="seq-cb" data-track="${t}" data-step="${i}" style="width:100%; height:20px; cursor:pointer;">`;
+            html += `<div class="seq-cell" data-track="${t}" data-step="${i}"></div>`;
         }
     });
     grid.innerHTML = html;
+
+    document.querySelectorAll('.seq-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+            cell.classList.toggle('active');
+        });
+    });
 }
 renderSequencer();
 
 function stepSequencer() {
-    // Unhighlight all headers
-    document.querySelectorAll('.seq-header-active').forEach(e=>e.classList.remove('seq-header-active'));
-    // Trigger sounds
+    document.querySelectorAll('.seq-cell.playing').forEach(e => e.classList.remove('playing'));
+    
     seqTracks.forEach(t => {
-        const cb = document.querySelector(`input.seq-cb[data-track="${t}"][data-step="${seqStep}"]`);
-        if(cb && cb.checked) {
-            playSound(t);
+        const cell = document.querySelector(`.seq-cell[data-track="${t}"][data-step="${seqStep}"]`);
+        if(cell) {
+            cell.classList.add('playing');
+            if(cell.classList.contains('active')) {
+                playSound(t);
+            }
         }
     });
     seqStep = (seqStep + 1) % 16;
