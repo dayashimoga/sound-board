@@ -315,8 +315,6 @@ window.addEventListener('keydown', e=>{
     }
 });
 
-});
-
 // --- EQ and Reverb Controls ---
 $('#eqBass')?.addEventListener('input', e=>{ if(eqBass) eqBass.gain.value = parseInt(e.target.value); $('#bassVal').textContent=e.target.value; });
 $('#eqMid')?.addEventListener('input', e=>{ if(eqMid) eqMid.gain.value = parseInt(e.target.value); $('#midVal').textContent=e.target.value; });
